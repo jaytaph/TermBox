@@ -1,0 +1,13 @@
+{
+    "name": "jaytaph/termbox",
+    "authors": [
+        {
+            "name": "Joshua Thijssen",
+            "email": "jthijssen@noxlogic.nl"
+        }
+    ],
+    "autoload": {
+       "psr-0" : { "": "src/" }
+    },
+    "require": {}
+}
