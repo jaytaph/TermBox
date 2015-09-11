@@ -1,10 +1,12 @@
 <?php
 
 use JayTaph\TermBox\Constants;
+use JayTaph\TermBox\Event;
 use JayTaph\TermBox\TermBox;
 
 require_once "vendor/autoload.php";
 
+$counter = 0;
 
 $keys = array(
     "K_ESC" => array( array( 1, 1, 'E'), array( 2, 1,'S'), array( 3,1,'C') ),
@@ -20,15 +22,12 @@ $keys = array(
     "K_F10" => array( array(36, 1, 'F'), array(37, 1, '1'), array(48, 1, '0') ),
     "K_F11" => array( array(40, 1, 'F'), array(41, 1, '1'), array(42, 1, '1') ),
     "K_F12" => array( array(44, 1, 'F'), array(45, 1, '1'), array(46, 1, '2') ),
-
     "K_PRN" => array( array(50, 1, 'P'), array(51, 1, 'R'), array(52, 1, 'N') ),
     "K_SCR" => array( array(54, 1, 'S'), array(55, 1, 'C'), array(56, 1, 'R') ),
     "K_BRK" => array( array(58, 1, 'B'), array(59, 1, 'R'), array(60, 1, 'K') ),
-
     "K_LED1" => array( array(66, 1, '-') ),
     "K_LED2" => array( array(70, 1, '-') ),
     "K_LED3" => array( array(74, 1, '-') ),
-
 
     "K_TILDE"   => array( array( 1, 4, '`') ),
     "K_1"       => array( array( 4, 4, '1') ),
@@ -41,7 +40,6 @@ $keys = array(
     "K_8"       => array( array(25, 4, '8') ),
     "K_9"       => array( array(28, 4, '9') ),
     "K_0"       => array( array(31, 4, '0') ),
-
     "K_MINUS"       => array( array(34, 4, '-') ),
     "K_EQUALS"      => array( array(37, 4, '=') ),
     "K_BACKSLASH"   => array( array(40, 4, '\\') ),
@@ -53,6 +51,88 @@ $keys = array(
     "K_K_SLASH"     => array( array(68, 4, '/') ),
     "K_K_STAR"      => array( array(71, 4, '*') ),
     "K_K_MINUS"     => array( array(74, 4, '-') ),
+
+    "K_TAB"     => array( array( 1, 6, 'T'), array( 2, 6, 'A'), array( 3, 6, 'B') ),
+    "K_Q"       => array( array( 6, 6, 'q') ),
+    "K_W"       => array( array( 9, 6, 'w') ),
+    "K_E"       => array( array(12, 6, 'e') ),
+    "K_R"       => array( array(15, 6, 'r') ),
+    "K_T"       => array( array(18, 6, 't') ),
+    "K_Y"       => array( array(21, 6, 'y') ),
+    "K_U"       => array( array(24, 6, 'u') ),
+    "K_I"       => array( array(27, 6, 'i') ),
+    "K_O"       => array( array(30, 6, 'o') ),
+    "K_P"       => array( array(33, 6, 'p') ),
+    "K_LSQB"       => array( array(36, 6, '[') ),
+    "K_RSQB"       => array( array(39, 6, ']') ),
+    "K_ENTER"       => array( array(43, 6, 0x2591), array(44, 6, 0x2591), array(45, 6, 0x2591), array(46, 6, 0x2591),
+                              array(43, 7, 0x2591), array(44, 7, 0x2591), array(45, 7, 0x21B5), array(46, 7, 0x2591),
+                              array(41, 8, 0x2591), array(42, 8, 0x2591),
+                              array(43, 8, 0x2591), array(44, 8, 0x2591), array(45, 8, 0x2591), array(46, 8, 0x2591),
+                        ),
+    "K_DEL"       => array( array(50, 6, 'D'), array(51, 6, 'E'), array(52, 6, 'L') ),
+    "K_END"       => array( array(54, 6, 'E'), array(55, 6, 'N'), array(56, 6, 'D') ),
+    "K_PGD"       => array( array(58, 6, 'P'), array(59, 6, 'G'), array(60, 6, 'D') ),
+    "K_K_7"       => array( array(65, 6, '7') ),
+    "K_K_8"       => array( array(68, 6, '8') ),
+    "K_K_9"       => array( array(71, 6, '9') ),
+    "K_K_PLUS"    => array( array(74, 6, ' '), array(74, 7, '+'), array(74, 8, ' ') ),
+
+
+    "K_CAPS"    => array( array( 1, 8, 'C'), array( 2, 8, 'A'), array( 3, 8, 'P'), array( 4, 8, 'S') ),
+    "K_A"       => array( array( 7, 8, 'a') ),
+    "K_S"       => array( array(10, 8, 's') ),
+    "K_D"       => array( array(13, 8, 'd') ),
+    "K_F"       => array( array(16, 8, 'f') ),
+    "K_G"       => array( array(19, 8, 'g') ),
+    "K_H"       => array( array(22, 8, 'h') ),
+    "K_J"       => array( array(25, 8, 'j') ),
+    "K_K"       => array( array(28, 8, 'k') ),
+    "K_L"       => array( array(31, 8, 'l') ),
+    "K_SEMI"    => array( array(34, 8, ';') ),
+    "K_QUOTE"   => array( array(37, 8, '\'') ),
+    "K_K_4"     => array( array(65, 8, '4') ),
+    "K_K_5"     => array( array(68, 8, '5') ),
+    "K_K_6"     => array( array(71, 8, '6') ),
+
+    "K_LSHIFT"  => array( array( 1, 10, 'S'), array( 2, 10, 'H'), array( 3, 10, 'I'), array( 4, 10, 'F'), array( 5, 10, 'T') ),
+    "K_Z"       => array( array( 9, 10, 'z') ),
+    "K_X"       => array( array(12, 10, 'x') ),
+    "K_C"       => array( array(15, 10, 'c') ),
+    "K_V"       => array( array(18, 10, 'v') ),
+    "K_B"       => array( array(21, 10, 'b') ),
+    "K_N"       => array( array(24, 10, 'n') ),
+    "K_M"       => array( array(27, 10, 'm') ),
+    "K_COMMA"     => array( array(30, 10, ',') ),
+    "K_PERIOD"    => array( array(33, 10, '.') ),
+    "K_SLASH"     => array( array(36, 10, '/') ),
+    "K_RSHIFT"    => array( array(42, 10, 'S'), array(43, 10, 'H'), array(44, 10, 'I'), array(45, 10, 'F'), array(46, 10, 'T') ),
+    "K_ARROW_UP"  => array( array(54, 10, ' '), array(55, 10, 0x2191), array(56, 10, ' ') ),
+    "K_K_1"       => array( array(65, 10, '1') ),
+    "K_K_2"       => array( array(68, 10, '2') ),
+    "K_K_3"       => array( array(71, 10, '3') ),
+    "K_K_ENTER"   => array( array(74, 10, 0x2591), array(74, 11, 0x2591),array(74, 12, 0x2591) ),
+
+
+    "K_LCTRL"  => array( array( 1, 12, 'C'), array( 2, 12, 'T'), array( 3, 12, 'R'), array( 4, 12, 'L') ),
+    "K_LWIN"   => array( array( 6, 12, ' '), array( 7, 12, 0x2318), array( 8, 12, ' ') ),
+    "K_LALT"   => array( array(10, 12, 'A'), array(11, 12, 'L'), array(12, 12, 'T') ),
+    "K_SPACE"   => array(
+                        array(14, 12, ' '), array(15, 12, ' '), array(16, 12, ' '), array(17, 12, ' '), array(18, 12, ' '),
+                        array(19, 12, 'S'), array(20, 12, 'P'), array(21, 12, 'A'), array(22, 12, 'C'), array(23, 12, 'E'),
+                        array(24, 12, ' '), array(25, 12, ' '), array(26, 12, ' '), array(27, 12, ' '), array(28, 12, ' ')
+                    ),
+    "K_RALT"   => array( array(30, 12, 'A'), array(31, 12, 'L'), array(32, 12, 'T') ),
+    "K_RWIN"   => array( array(34, 12, ' '), array(35, 12, 0x2318), array(36, 12, ' ') ),
+    "K_RPROP"  => array( array(38, 12, 'P'), array(39, 12, 'R'), array(40, 12, 'O'), array(41, 12, 'P') ),
+    "K_RCTRL"  => array( array(43, 12, 'C'), array(44, 12, 'T'), array(45, 12, 'R'), array(46, 12, 'L') ),
+
+    "K_ARROW_LEFT"  => array( array(50, 12, ' '), array(51, 12, 0x2190), array(52, 12, ' ') ),
+    "K_ARROW_DOWN"  => array( array(54, 12, ' '), array(55, 12, 0x2193), array(56, 12, ' ') ),
+    "K_ARROW_RIGHT" => array( array(58, 12, ' '), array(59, 12, 0x2192), array(60, 12, ' ') ),
+
+    "K_K_0"         => array( array(65, 12, ' '), array(66, 12, '0'),array(67, 12, ' ') ),
+    "K_K_PERIOD"    => array( array(71, 12, '.') ),
 );
 
 $keys_shift = array(
@@ -73,133 +153,75 @@ $keys_shift = array(
 );
 
 
-//       struct key K_TAB[] = {{1,6,'T'},{2,6,'A'},{3,6,'B'},STOP};
-//       struct key K_q[] = {{6,6,'q'},STOP};
-//       struct key K_Q[] = {{6,6,'Q'},STOP};
-//       struct key K_w[] = {{9,6,'w'},STOP};
-//       struct key K_W[] = {{9,6,'W'},STOP};
-//       struct key K_e[] = {{12,6,'e'},STOP};
-//       struct key K_E[] = {{12,6,'E'},STOP};
-//       struct key K_r[] = {{15,6,'r'},STOP};
-//       struct key K_R[] = {{15,6,'R'},STOP};
-//       struct key K_t[] = {{18,6,'t'},STOP};
-//       struct key K_T[] = {{18,6,'T'},STOP};
-//       struct key K_y[] = {{21,6,'y'},STOP};
-//       struct key K_Y[] = {{21,6,'Y'},STOP};
-//       struct key K_u[] = {{24,6,'u'},STOP};
-//       struct key K_U[] = {{24,6,'U'},STOP};
-//       struct key K_i[] = {{27,6,'i'},STOP};
-//       struct key K_I[] = {{27,6,'I'},STOP};
-//       struct key K_o[] = {{30,6,'o'},STOP};
-//       struct key K_O[] = {{30,6,'O'},STOP};
-//       struct key K_p[] = {{33,6,'p'},STOP};
-//       struct key K_P[] = {{33,6,'P'},STOP};
-//       struct key K_LSQB[] = {{36,6,'['},STOP};
-//       struct key K_LCUB[] = {{36,6,'{'},STOP};
-//       struct key K_RSQB[] = {{39,6,']'},STOP};
-//       struct key K_RCUB[] = {{39,6,'}'},STOP};
-//       struct key K_ENTER[] = {
-//       	{43,6,0x2591},{44,6,0x2591},{45,6,0x2591},{46,6,0x2591},
-//       	{43,7,0x2591},{44,7,0x2591},{45,7,0x21B5},{46,7,0x2591},
-//       	{41,8,0x2591},{42,8,0x2591},{43,8,0x2591},{44,8,0x2591},
-//       	{45,8,0x2591},{46,8,0x2591},STOP
-//       };
-//       struct key K_DEL[] = {{50,6,'D'},{51,6,'E'},{52,6,'L'},STOP};
-//       struct key K_END[] = {{54,6,'E'},{55,6,'N'},{56,6,'D'},STOP};
-//       struct key K_PGD[] = {{58,6,'P'},{59,6,'G'},{60,6,'D'},STOP};
-//       struct key K_K_7[] = {{65,6,'7'},STOP};
-//       struct key K_K_8[] = {{68,6,'8'},STOP};
-//       struct key K_K_9[] = {{71,6,'9'},STOP};
-//       struct key K_K_PLUS[] = {{74,6,' '},{74,7,'+'},{74,8,' '},STOP};
-//
-//       struct key K_CAPS[] = {{1,8,'C'},{2,8,'A'},{3,8,'P'},{4,8,'S'},STOP};
-//       struct key K_a[] = {{7,8,'a'},STOP};
-//       struct key K_A[] = {{7,8,'A'},STOP};
-//       struct key K_s[] = {{10,8,'s'},STOP};
-//       struct key K_S[] = {{10,8,'S'},STOP};
-//       struct key K_d[] = {{13,8,'d'},STOP};
-//       struct key K_D[] = {{13,8,'D'},STOP};
-//       struct key K_f[] = {{16,8,'f'},STOP};
-//       struct key K_F[] = {{16,8,'F'},STOP};
-//       struct key K_g[] = {{19,8,'g'},STOP};
-//       struct key K_G[] = {{19,8,'G'},STOP};
-//       struct key K_h[] = {{22,8,'h'},STOP};
-//       struct key K_H[] = {{22,8,'H'},STOP};
-//       struct key K_j[] = {{25,8,'j'},STOP};
-//       struct key K_J[] = {{25,8,'J'},STOP};
-//       struct key K_k[] = {{28,8,'k'},STOP};
-//       struct key K_K[] = {{28,8,'K'},STOP};
-//       struct key K_l[] = {{31,8,'l'},STOP};
-//       struct key K_L[] = {{31,8,'L'},STOP};
-//       struct key K_SEMICOLON[] = {{34,8,';'},STOP};
-//       struct key K_PARENTHESIS[] = {{34,8,':'},STOP};
-//       struct key K_QUOTE[] = {{37,8,'\''},STOP};
-//       struct key K_DOUBLEQUOTE[] = {{37,8,'"'},STOP};
-//       struct key K_K_4[] = {{65,8,'4'},STOP};
-//       struct key K_K_5[] = {{68,8,'5'},STOP};
-//       struct key K_K_6[] = {{71,8,'6'},STOP};
-//
-//       struct key K_LSHIFT[] = {{1,10,'S'},{2,10,'H'},{3,10,'I'},{4,10,'F'},{5,10,'T'},STOP};
-//       struct key K_z[] = {{9,10,'z'},STOP};
-//       struct key K_Z[] = {{9,10,'Z'},STOP};
-//       struct key K_x[] = {{12,10,'x'},STOP};
-//       struct key K_X[] = {{12,10,'X'},STOP};
-//       struct key K_c[] = {{15,10,'c'},STOP};
-//       struct key K_C[] = {{15,10,'C'},STOP};
-//       struct key K_v[] = {{18,10,'v'},STOP};
-//       struct key K_V[] = {{18,10,'V'},STOP};
-//       struct key K_b[] = {{21,10,'b'},STOP};
-//       struct key K_B[] = {{21,10,'B'},STOP};
-//       struct key K_n[] = {{24,10,'n'},STOP};
-//       struct key K_N[] = {{24,10,'N'},STOP};
-//       struct key K_m[] = {{27,10,'m'},STOP};
-//       struct key K_M[] = {{27,10,'M'},STOP};
-//       struct key K_COMMA[] = {{30,10,','},STOP};
-//       struct key K_LANB[] = {{30,10,'<'},STOP};
-//       struct key K_PERIOD[] = {{33,10,'.'},STOP};
-//       struct key K_RANB[] = {{33,10,'>'},STOP};
-//       struct key K_SLASH[] = {{36,10,'/'},STOP};
-//       struct key K_QUESTION[] = {{36,10,'?'},STOP};
-//       struct key K_RSHIFT[] = {{42,10,'S'},{43,10,'H'},{44,10,'I'},{45,10,'F'},{46,10,'T'},STOP};
-//       struct key K_ARROW_UP[] = {{54,10,'('},{55,10,0x2191},{56,10,')'},STOP};
-//       struct key K_K_1[] = {{65,10,'1'},STOP};
-//       struct key K_K_2[] = {{68,10,'2'},STOP};
-//       struct key K_K_3[] = {{71,10,'3'},STOP};
-//       struct key K_K_ENTER[] = {{74,10,0x2591},{74,11,0x2591},{74,12,0x2591},STOP};
-//
-//       struct key K_LCTRL[] = {{1,12,'C'},{2,12,'T'},{3,12,'R'},{4,12,'L'},STOP};
-//       struct key K_LWIN[] = {{6,12,'W'},{7,12,'I'},{8,12,'N'},STOP};
-//       struct key K_LALT[] = {{10,12,'A'},{11,12,'L'},{12,12,'T'},STOP};
-//       struct key K_SPACE[] = {
-//       	{14,12,' '},{15,12,' '},{16,12,' '},{17,12,' '},{18,12,' '},
-//       	{19,12,'S'},{20,12,'P'},{21,12,'A'},{22,12,'C'},{23,12,'E'},
-//       	{24,12,' '},{25,12,' '},{26,12,' '},{27,12,' '},{28,12,' '},
-//       	STOP
-//       };
-//       struct key K_RALT[] = {{30,12,'A'},{31,12,'L'},{32,12,'T'},STOP};
-//       struct key K_RWIN[] = {{34,12,'W'},{35,12,'I'},{36,12,'N'},STOP};
-//       struct key K_RPROP[] = {{38,12,'P'},{39,12,'R'},{40,12,'O'},{41,12,'P'},STOP};
-//       struct key K_RCTRL[] = {{43,12,'C'},{44,12,'T'},{45,12,'R'},{46,12,'L'},STOP};
-//       struct key K_ARROW_LEFT[] = {{50,12,'('},{51,12,0x2190},{52,12,')'},STOP};
-//       struct key K_ARROW_DOWN[] = {{54,12,'('},{55,12,0x2193},{56,12,')'},STOP};
-//       struct key K_ARROW_RIGHT[] = {{58,12,'('},{59,12,0x2192},{60,12,')'},STOP};
-//       struct key K_K_0[] = {{65,12,' '},{66,12,'0'},{67,12,' '},{68,12,' '},STOP};
-//       struct key K_K_PERIOD[] = {{71,12,'.'},STOP};
-//);
+
 
 
 $tb = new TermBox();
 $tb->selectInputMode(Constants::TB_INPUT_ESC | Constants::TB_INPUT_MOUSE);
 
-$tb->clear();
-//$tb->present();
-
 draw_keyboard($tb);
 $tb->present();
 
+$input_mode = 0;
+$ctrlxpressed = false;
+
+while ($event = $tb->pollEvent()) {
+    switch ($event->getType()) {
+
+        // Did we press a key?
+        case Constants::TB_EVENT_KEY :
+            if ($event->getKey() == Constants::TB_KEY_CTRL_Q && $ctrlxpressed) {
+                return 0;
+            }
+            if ($event->getKey() == Constants::TB_KEY_CTRL_C && $ctrlxpressed) {
+                $chmap = array(
+                    Constants::TB_INPUT_ESC | Constants::TB_INPUT_MOUSE,
+                    Constants::TB_INPUT_ALT | Constants::TB_INPUT_MOUSE,
+                    Constants::TB_INPUT_ESC,
+                    Constants::TB_INPUT_ALT,
+                );
+                $input_mode++;
+                if ($input_mode >= 4) {
+                    $input_mode = 0;
+                }
+                $tb->selectInputMode($input_mode);
+            }
+            if ($event->getKey() == Constants::TB_KEY_CTRL_X) {
+                $ctrlxpressed = true;
+            } else {
+                $ctrlxpressed = false;
+            }
+
+            $tb->clear();
+            draw_keyboard($tb);
+            dispatch_press($event);
+            pretty_print_press($event);
+            $tb->present();
+            break;
+
+        // Did we resize the terminal?
+        case Constants::TB_EVENT_RESIZE :
+            $tb->clear();
+            draw_keyboard($tb);
+            pretty_print_resize($event);
+            $tb->present();
+            break;
+
+        // Did we jiggly the mouse?
+        case Constants::TB_EVENT_MOUSE :
+            $tb->clear();
+            draw_keyboard($tb);
+            pretty_print_mouse($event);
+            $tb->present();
+            break;
+
+        default:
+            break;
+    }
+}
+
 sleep(3);
 
-print "Done\n";
 exit();
 
 
@@ -259,7 +281,6 @@ function printf_tb(TermBox $tb, $x, $y, $fg, $bg, $s) {
     }
 }
 
-
 function draw_key(TermBox $tb, $key, $fg, $bg) {
     global $keys;
 
@@ -270,4 +291,83 @@ function draw_key(TermBox $tb, $key, $fg, $bg) {
     foreach ($keys[$key] as $cell) {
         $tb->changeCell($cell[0] + 2, $cell[1] + 4, $cell[2], $fg, $bg);
     }
+}
+
+function dispatch_press(Event $event, TermBox $tb) {
+    if ($event->getMode() & Constants::TB_MOD_ALT) {
+        draw_key($tb, "K_LALT", Constants::TB_WHITE, Constants::TB_RED);
+        draw_key($tb, "K_RALT", Constants::TB_WHITE, Constants::TB_RED);
+    }
+}
+/*
+	struct combo *k = 0;
+	if (ev->key >= TB_KEY_ARROW_RIGHT)
+		k = &func_combos[0xFFFF-ev->key];
+	else if (ev->ch < 128) {
+		if (ev->ch == 0 && ev->key < 128)
+			k = &combos[ev->key];
+		else
+			k = &combos[ev->ch];
+	}
+	if (!k)
+		return;
+
+	struct key **keys = k->keys;
+	while (*keys) {
+		draw_key(*keys, TB_WHITE, TB_RED);
+		keys++;
+	}
+*/
+
+function pretty_print_mouse(TermBox $tb, Event $event) {
+    printf_tb($tb, 3, 19, Constants::TB_WHITE, Constants::TB_DEFAULT, "Mouse event: ".$event->getX()." x ".$event->getY());
+
+    $btn = "";
+    switch ($event->getKey()) {
+        case Constants::TB_KEY_MOUSE_LEFT :
+            $btn = "MouseLeft: ";
+            break;
+        case Constants::TB_KEY_MOUSE_MIDDLE :
+            $btn = "MouseMiddle: ";
+            break;
+        case Constants::TB_KEY_MOUSE_RIGHT :
+            $btn = "MouseRight: ";
+            break;
+        case Constants::TB_KEY_MOUSE_WHEEL_UP :
+            $btn = "MouseWheelUp: ";
+            break;
+        case Constants::TB_KEY_MOUSE_WHEEL_DOWN :
+            $btn = "MouseWheelDown: ";
+            break;
+        case Constants::TB_KEY_MOUSE_RELEASE :
+            $btn = "MouseRelease: ";
+            break;
+    }
+
+    global $counter;
+    $counter++;
+    printf_tb($tb, 43, 19, Constants::TB_WHITE, Constants::TB_DEFAULT, "Key: ");
+    printf_tb($tb, 48, 19, Constants::TB_YELLOW, Constants::TB_DEFAULT, $btn." ".$counter);
+}
+
+function pretty_print_resize(TermBox $tb, Event $event)
+{
+    printf_tb($tb, 3, 19, Constants::TB_WHITE, Constants::TB_DEFAULT, "Resize event: ".$event->getWidth()." x ".$event->getHeight());
+}
+
+function pretty_print_press(TermBox $tb, Event $event)
+{
+    printf_tb($tb, 3, 19, Constants::TB_WHITE , Constants::TB_DEFAULT, "Key: ");
+    printf_tb($tb, 8, 19, Constants::TB_YELLOW, Constants::TB_DEFAULT, sprintf("decimal: %d", $event->getKey()));
+    printf_tb($tb, 8, 20, Constants::TB_GREEN , Constants::TB_DEFAULT, sprintf("hex:     0x%X", $event->getKey()));
+    printf_tb($tb, 8, 21, Constants::TB_CYAN  , Constants::TB_DEFAULT, sprintf("octal:   0%o", $event->getKey()));
+    //printf_tb($tb, 8, 22, Constants::TB_RED   , Constants::TB_DEFAULT, sprintf("string:  %s", funckeymap(ev->key)));
+
+    printf_tb($tb, 54, 19, Constants::TB_WHITE , Constants::TB_DEFAULT, "Char: ");
+    printf_tb($tb, 60, 19, Constants::TB_YELLOW, Constants::TB_DEFAULT, sprintf("decimal: %d", $event->getChar()));
+    printf_tb($tb, 60, 20, Constants::TB_GREEN , Constants::TB_DEFAULT, sprintf("hex:     0x%X", $event->getChar()));
+    printf_tb($tb, 60, 21, Constants::TB_CYAN  , Constants::TB_DEFAULT, sprintf("octal:   0%o", $event->getChar()));
+    printf_tb($tb, 60, 22, Constants::TB_RED   , Constants::TB_DEFAULT, sprintf("string:  %s", $event->getChar()));
+
+    printf_tb($tb, 54, 18, Constants::TB_WHITE, Constants::TB_DEFAULT, "Modifier: ".($event->getMode() ? "TB_MOD_ALT" : "none"));
 }
