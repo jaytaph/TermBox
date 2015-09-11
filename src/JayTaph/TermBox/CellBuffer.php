@@ -32,8 +32,11 @@ class CellBuffer {
     public function clear($fg, $bg) {
         $this->cells = array();
 
+        // Create one cell, and just reference it
+        $empty = new Cell(' ', $fg, $bg);
+
         for ($i = 0; $i != $this->width * $this->height; $i++) {
-            $this->cells[] = new Cell(' ', $fg, $bg);
+            $this->cells[] = $empty;
         }
     }
 

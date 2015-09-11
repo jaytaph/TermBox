@@ -48,6 +48,8 @@ class Cell {
     }
 
     public function equals(Cell $dst) {
+        if ($this == $dst) return true;
+
         return (
             $this->ch == $dst->getCh() &&
             $this->fg == $dst->getFg() &&

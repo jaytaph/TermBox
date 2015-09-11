@@ -296,12 +296,19 @@ class TermBox {
         return $this->input_mode;
     }
 
-    public function pollEvent(Event $event) {
-        return $this->waitFillEvent($event, 0);
+    /**
+     * @return Event
+     */
+    public function pollEvent() {
+        return $this->waitFillEvent(0);
     }
 
-    public function peekEvent(Event $event, $timeout) {
-        return $this->waitFillEvent($event, $timeout);
+    /**
+     * @param $timeout
+     * @return Event|null
+     */
+    public function peekEvent($timeout) {
+        return $this->waitFillEvent($timeout);
     }
 
 
@@ -519,11 +526,12 @@ class TermBox {
         $this->background = $bg;
     }
 
-    protected function waitFillEvent(Event $event, $timeout = 0) {
-        $event->type = Constants::TB_EVENT_KEY;
+    protected function waitFillEvent($timeout = 0) {
+        $event = new Event();
+        $event->setType(Constants::TB_EVENT_KEY);
 
-        if ($this->extractEvent($event, $this->input_buffer, $this->input_mode)) {
-            return $event->type;
+        if ($event = $this->extractEvent($event, $this->input_buffer, $this->input_mode)) {
+            return $event;
         }
 
         $n = $this->readUpTo(64);
