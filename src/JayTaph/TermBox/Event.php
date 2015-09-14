@@ -3,12 +3,14 @@
 namespace JayTaph\TermBox;
 
 final class Event {
-    public $type;
-    public $key;
-    public $mode;
-    public $height;
-    public $width;
-    public $char;
+    protected $type;
+    protected $key;
+    protected $mode;
+    protected $height;
+    protected $width;
+    protected $char;
+    protected $x;
+    protected $y;
 
     /**
      * @return mixed
@@ -104,6 +106,38 @@ final class Event {
     public function setWidth($width)
     {
         $this->width = $width;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getX()
+    {
+        return $this->x;
+    }
+
+    /**
+     * @param mixed $x
+     */
+    public function setX($x)
+    {
+        $this->x = $x;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getY()
+    {
+        return $this->y;
+    }
+
+    /**
+     * @param mixed $y
+     */
+    public function setY($y)
+    {
+        $this->y = $y;
     }
 
 }

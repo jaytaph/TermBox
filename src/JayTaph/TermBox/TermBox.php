@@ -111,18 +111,24 @@ class TermBox {
         $this->front_buffer = new CellBuffer($this->term_width, $this->term_height, $this->foreground, $this->background);
     }
 
+    /**
+     *
+     */
     public function __destruct()
     {
-        if ($this->output_buffer) {
+        if ($this->output_buffer && $this->tty_fd) {
+            // If we have an output buffer, send restore characters
             $this->output_buffer->putsFunc(TerminalFunc::T_SHOW_CURSOR);
             $this->output_buffer->putsFunc(TerminalFunc::T_SGR0);
             $this->output_buffer->putsFunc(TerminalFunc::T_CLEAR_SCREEN);
             $this->output_buffer->putsFunc(TerminalFunc::T_EXIT_CA);
             $this->output_buffer->putsFunc(TerminalFunc::T_EXIT_KEYPAD);
             $this->output_buffer->putsFunc(TerminalFunc::T_EXIT_MOUSE);
+
             $this->output_buffer->flush($this->tty_fd);
         }
 
+        // Restore TTY settings
         if ($this->old_tty_settings) {
             $this->setTtySettingRaw($this->old_tty_settings);
         }
@@ -139,7 +145,11 @@ class TermBox {
         // Restore pcntl_signal(SIGWINCH, array($this, 'sigwinchhandler'));
     }
 
-    public function present() {
+    /**
+     *
+     */
+    public function present()
+    {
         $this->last_x = -1;
         $this->last_y = -1;
 
@@ -148,54 +158,72 @@ class TermBox {
             $this->buffer_size_change_request = false;
         }
 
-        // Lazy load wcwidth
+        // Lazy load WcWidth
         if (! $this->wcWidth) {
             $this->wcWidth = new WcWidth();
         }
 
+        // Iterate height x width
         for ($y=0; $y < $this->front_buffer->getHeight(); $y++) {
             for ($x=0; $x < $this->front_buffer->getWidth(); ) {
+
+                // Get front and back cell for coordinate
                 $back = $this->back_buffer->getCell($x, $y);
                 $front = $this->front_buffer->getCell($x, $y);
 
+                // Check width of character
                 $w = $this->wcWidth->getWidth($back->getCh());
                 if ($w < 1) $w = 1;
 
+                // Back and front are equal   (@TODO: use reference / hash ID?)
                 if ($back->equals($front)) {
                     $x += $w;
                     continue;
                 }
 
-                $this->sendAttribute($back->getFg(), $back->getBg());
+                // Set color attributes
+                $this->sendColorAttributes($back->getFg(), $back->getBg());
 
-                if ($w == 1 && $x >= $this->front_buffer->getWidth() - ($w - 1)) {
+                // Can't set wide character since there isn't enough room left. We send spaces instead
+                if ($w > 1 && $x >= $this->front_buffer->getWidth() - ($w - 1)) {
                     for ($i=$x; $i < $this->front_buffer->getWidth(); $i++) {
                         $this->sendChar($i, $y, ' ');
                     }
                 } else {
+                    // Send character
                     $this->sendChar($x, $y, $back->getCh());
+                    // Set the next cells to nothing, as we won't display these cells
                     for ($i=1; $i < $w; $i++) {
                         $cell = new Cell(0, $back->getFg(), $back->getBg());
-                        $this->front_buffer->setxCell($x + $i, $y, $cell);
+                        $this->front_buffer->setCell($x + $i, $y, $cell);
                     }
                 }
+
+                // Increase X with char width
                 $x += $w;
             }
         }
 
+        // Set cursor if needed
         if (! $this->isCursorHidden($this->cursor_x, $this->cursor_y)) {
             $this->writeCursor($this->cursor_x, $this->cursor_y);
         }
+
+        // And flush
         $this->output_buffer->flush($this->tty_fd);
     }
 
 
-    public function putCell($x, $y, Cell $cell) {
-        if ($x >= $this->back_buffer->getWidth()) {
-            return;
-        }
-
-        if ($y >= $this->back_buffer->getHeight()) {
+    /**
+     * @param $x
+     * @param $y
+     * @param Cell $cell
+     */
+    public function putCell($x, $y, Cell $cell)
+    {
+        // Sanity check to see if we can actually set the character
+        if ($x >= $this->back_buffer->getWidth() ||
+            $y >= $this->back_buffer->getHeight()) {
             return;
         }
 
@@ -203,14 +231,34 @@ class TermBox {
     }
 
 
-    public function changeCell($x, $y, $c, $fg, $bg) {
+    /**
+     * @param $x    X coordinate
+     * @param $y    Y coordinate
+     * @param $c    Character
+     * @param $fg   Foreground color
+     * @param $bg   Background color
+     *
+     * @return Cell
+     */
+    public function changeCell($x, $y, $c, $fg, $bg)
+    {
         $cell = new Cell($c, $fg, $bg);
         $this->putCell($x, $y, $cell);
 
         return $cell;
     }
 
-    public function blit($x, $y, $w, $h, array $cells) {
+    /**
+     * Blit an array of cells
+     *
+     * @param $x    X coordinate
+     * @param $y    Y coordinate
+     * @param $w    Width
+     * @param $h    Height
+     * @param array $cells  Cells
+     */
+    public function blit($x, $y, $w, $h, array $cells)
+    {
         if ($x + $w < 0 || $x >= $this->back_buffer->getWidth()) {
             return;
         }
@@ -258,14 +306,29 @@ class TermBox {
          */
     }
 
-    public function getWidth() {
+    /**
+     * Return width of terminal
+     *
+     * @return int
+     */
+    public function getWidth()
+    {
         return $this->term_width;
     }
 
-    public function getHeight() {
+    /**
+     * Return height of terminal
+     *
+     * @return int
+     */
+    public function getHeight()
+    {
         return $this->term_height;
     }
 
+    /**
+     * Clear back buffer with empty cells in current colors
+     */
     public function clear() {
         if ($this->buffer_size_change_request) {
             $this->updateSize();
@@ -275,11 +338,26 @@ class TermBox {
         $this->back_buffer->clear($this->foreground, $this->background);
     }
 
-    public function selectInputMode($mode) {
+    /**
+     * @return int
+     */
+    public function getInputMode()
+    {
+        return $this->input_mode;
+    }
+
+    /**
+     * @param $mode
+     * @return int
+     */
+    public function selectInputMode($mode)
+    {
+        // Either we are in ESC or ALT. If none is given, use ESC
         if (($mode & (Constants::TB_INPUT_ESC | Constants::TB_INPUT_ALT)) == 0) {
             $mode |= Constants::TB_INPUT_ESC;
         }
 
+        // If ESC and ALT is given, use ALT
         if (($mode & (Constants::TB_INPUT_ESC | Constants::TB_INPUT_ALT)) == (Constants::TB_INPUT_ESC | Constants::TB_INPUT_ALT)) {
             $mode &= ~Constants::TB_INPUT_ALT;
         }
@@ -291,42 +369,57 @@ class TermBox {
         } else {
             $this->output_buffer->putsFunc(TerminalFunc::T_EXIT_MOUSE);
         }
+
+
         $this->output_buffer->flush($this->tty_fd);
 
         return $this->input_mode;
     }
 
     /**
+     * Block until event occurs
+     *
      * @return Event
      */
-    public function pollEvent() {
+    public function pollEvent()
+    {
         return $this->waitFillEvent(0);
     }
 
     /**
+     * Peek for event until event occurs or timeout
+     *
      * @param $timeout
      * @return Event|null
      */
-    public function peekEvent($timeout) {
+    public function peekEvent($timeout)
+    {
         return $this->waitFillEvent($timeout);
     }
 
-
-
-
+    /**
+     * Set cursor
+     *
+     * @param $cx
+     * @param $cy
+     */
     protected function setCursor($cx, $cy)
     {
-        if ($this->isCursorHidden($this->cursor_x, $this->cursor_y) && !$this->isCursorHidden($cx, $cy)) {
+        // Show cursor if hidden and becomes visible
+        if ($this->isCursorHidden($this->cursor_x, $this->cursor_y) && ! $this->isCursorHidden($cx, $cy)) {
             $this->output_buffer->putsFunc(TerminalFunc::T_SHOW_CURSOR);
         }
 
+        // Hide cursor if not hidden and becomes hidden
         if (! $this->isCursorHidden($this->cursor_x, $this->cursor_y) && $this->isCursorHidden($cx, $cy)) {
             $this->output_buffer->putsFunc(TerminalFunc::T_HIDE_CURSOR);
         }
 
+        // Set new cursor offset
         $this->cursor_x = $cx;
         $this->cursor_y = $cy;
 
+        // Write the cursor on the new location
         if (! $this->isCursorHidden($this->cursor_x, $this->cursor_y)) {
             $this->writeCursor($this->cursor_x, $this->cursor_y);
         }
@@ -338,46 +431,100 @@ class TermBox {
         fwrite($this->winch_sockets[1], "1");
     }
 
+    /**
+     * Get TTY settings
+     *
+     * @return string
+     */
     protected function getTtySettings()
     {
         $settings = shell_exec('stty -g');
         return $settings;
     }
 
+    /**
+     * Set TTY settings
+     *
+     * @param $settings
+     */
     protected function setTTYSettingRaw($settings)
     {
         shell_exec('stty '. $settings);
     }
 
+    /**
+     * Set TTY settings
+     *
+     * @param array $settings
+     */
     protected function setTTYSettings(array $settings)
     {
         foreach (array_keys($settings) as $k) {
             $settings[$k] = escapeshellarg($settings[$k]);
         }
-        shell_exec('stty '.join(' ', $settings));
+
+        $this->setTTYSettingRaw(join(' ', $settings));
     }
 
-
-    protected function isCursorHidden($cx, $cy) {
+    /**
+     * Return true if the cursor is hidden. False if not
+     *
+     * @param $cx
+     * @param $cy
+     * @return bool
+     */
+    protected function isCursorHidden($cx, $cy)
+    {
         return ($cx == -1 || $cy == -1);
     }
-    protected function writeCursor($cx, $cy) {
+
+    /**
+     * Send ANSI codes for setting the cursor at the given position
+     *
+     * @param $cx
+     * @param $cy
+     */
+    protected function writeCursor($cx, $cy)
+    {
         $this->output_buffer->append("\033[".($cy+1).";".($cx+1)."H");
     }
 
-    protected function writeSgrFg($fg) {
+    /**
+     * Send ANSI codes for foreground color
+     *
+     * @param $fg
+     */
+    protected function writeSgrFg($fg)
+    {
         $this->output_buffer->append("\033[3".($fg-1)."m");
     }
-    protected function writeSgrBg($bg) {
+
+    /**
+     * Send ANSI codes for background color
+     *
+     * @param $bg
+     */
+    protected function writeSgrBg($bg)
+    {
         $this->output_buffer->append("\033[4".($bg-1)."m");
     }
-    protected function writeSgr($fg, $bg) {
+
+    /**
+     * Write ANSI colors for foreground and background color, based on the given output mode
+     * @param $fg
+     * @param $bg
+     */
+    protected function writeSgr($fg, $bg)
+    {
         switch ($this->output_mode) {
+            // Use extended ANSI colors
             case Constants::TB_OUTPUT_256:
             case Constants::TB_OUTPUT_216:
             case Constants::TB_OUTPUT_GRAYSCALE:
                 $this->output_buffer->append("\033[38;5;" . ($fg) . "m\033[48;5;" . ($bg) . "m");
                 break;
+
+            // Use default ANSI colors
             case Constants::TB_OUTPUT_NORMAL:
             default:
                 $this->output_buffer->append("\033[3" . ($fg-1) . ";4" . ($bg-1) . "m");
@@ -386,14 +533,23 @@ class TermBox {
     }
 
 
+    /**
+     * Clears the screen
+     */
     protected function sendClear()
     {
-        $this->sendAttribute($this->foreground, $this->background);
+        // Set color
+        $this->sendColorAttributes($this->foreground, $this->background);
 
+        // Set clear screen
         $this->output_buffer->putsFunc(TerminalFunc::T_CLEAR_SCREEN);
+
+        // Set cursor
         if (! $this->isCursorHidden($this->cursor_x, $this->cursor_y)) {
             $this->writeCursor($this->cursor_x, $this->cursor_y);
         }
+
+        // Output
         $this->output_buffer->flush($this->tty_fd);
 
         $this->last_x = -1;
@@ -401,35 +557,47 @@ class TermBox {
     }
 
 
-
-
-
-
-    protected function selectOutputMode($mode) {
+    /**
+     * Set output mode
+     *
+     * @param $mode
+     * @return int
+     */
+    protected function selectOutputMode($mode)
+    {
         $this->output_mode = $mode;
         return $this->output_mode;
     }
 
-    protected function clearAttributes($fg, $bg) {
-        $this->foreground = $fg;
-        $this->background = $bg;
-    }
+//    /**
+//     * Set default attributes
+//     *
+//     * @param $fg
+//     * @param $bg
+//     */
+//    protected function clearAttributes($fg, $bg) {
+//        $this->foreground = $fg;
+//        $this->background = $bg;
+//    }
 
-    protected function getTerminalSize() {
+    protected function getTerminalSize()
+    {
         $w = exec('/usr/bin/tput cols');
         $h = exec('/usr/bin/tput lines');
 
         return array($w, $h);
     }
 
-    protected function updateTerminalSize() {
+    protected function updateTerminalSize()
+    {
         list($w, $h) = $this->getTerminalSize();
 
         $this->term_width = $w;
         $this->term_height = $h;
     }
 
-    protected function sendAttribute($fg, $bg) {
+    protected function sendColorAttributes($fg, $bg)
+    {
         if ($fg == $this->last_fg && $bg != $this->last_bg) {
             return;
         }
@@ -499,7 +667,8 @@ class TermBox {
         $this->last_bg = $bg;
     }
 
-    protected function sendChar($x, $y, $c) {
+    protected function sendChar($x, $y, $c)
+    {
         if ($x-1 != $this->last_x || $y != $this->last_y) {
             $this->writeCursor($x, $y);
         }
@@ -510,7 +679,8 @@ class TermBox {
         $this->output_buffer->puts(Utf8::unicodeToChar($c));
     }
 
-    protected function updateSize() {
+    protected function updateSize()
+    {
         $this->updateTerminalSize();
 
         $this->back_buffer->resize($this->term_width, $this->term_height, $this->foreground, $this->background);
@@ -521,12 +691,13 @@ class TermBox {
     }
 
 
-    protected function setClearAttributes($fg, $bg) {
-        $this->foreground = $fg;
-        $this->background = $bg;
-    }
+//    protected function setColorAttributes($fg, $bg) {
+//        $this->foreground = $fg;
+//        $this->background = $bg;
+//    }
 
-    protected function waitFillEvent($timeout = 0) {
+    protected function waitFillEvent($timeout = 0)
+    {
         $event = new Event();
         $event->setType(Constants::TB_EVENT_KEY);
 
@@ -537,7 +708,7 @@ class TermBox {
         $n = $this->readUpTo(64);
         if ($n < 0) return -1;
         if ($n > 0 && $this->extractEvent($event, $this->input_buffer, $this->input_mode)) {
-            return $event->type;
+            return $event->getType();
         }
 
         while (1) {
@@ -561,7 +732,7 @@ class TermBox {
                     }
 
                     if ($this->extractEvent($event, $this->input_buffer, $this->input_mode)) {
-                        return $event->type;
+                        return $event->getType();
                     }
                 }
                 if ($s == $this->winch_sockets[0]) {
@@ -577,11 +748,18 @@ class TermBox {
             }
         }
 
-        return $event->type;
+        return $event->getType();
     }
 
 
-    protected function readUpTo($n) {
+    /**
+     * Read at maximum $n characters from the TTY into the input buffer
+     *
+     * @param $n
+     * @return int
+     */
+    protected function readUpTo($n)
+    {
         $s = fread($this->tty_fd, $n);
 
         $this->input_buffer->append($s);
@@ -590,6 +768,67 @@ class TermBox {
     }
 
 
+    /**
+     * @param Event $event
+     * @param $buf
+     * @return int
+     */
+    protected function parseEscapeSequence(Event $event, $buf)
+    {
+        if (strlen($buf) >= 6 && strpos($buf, "\033[M") === 0) {
+            switch ($buf[3] & 3) {
+                case 0 :
+                    if ($buf[3] == 0x60) {
+                        $event->setKey(Constants::TB_KEY_MOUSE_WHEEL_UP);
+                    } else {
+                        $event->setKey(Constants::TB_KEY_MOUSE_LEFT);
+                    }
+                    break;
+                case 1:
+                    if ($buf[3] == 0x61) {
+                        $event->setKey(Constants::TB_KEY_MOUSE_WHEEL_DOWN);
+                    } else {
+                        $event->setKey(Constants::TB_KEY_MOUSE_MIDDLE);
+                    }
+                    break;
+                case 2:
+                    $event->setKey(Constants::TB_KEY_MOUSE_WHEEL_DOWN);
+                    break;
+                case 3:
+                    $event->setKey(Constants::TB_KEY_MOUSE_RIGHT);
+                    break;
+                case 4:
+                    $event->setKey(Constants::TB_KEY_MOUSE_RELEASE);
+                    break;
+                default:
+                    return -6;
+            }
+
+            $event->setType(Constants::TB_EVENT_MOUSE);
+
+            $event->setX($buf[4] - 1 - 32);
+            $event->setY($buf[5] - 1 - 32);
+
+            return 6;
+        }
+
+        for ($i = 0; $i != $keys[$i]; $i++) {
+            if (strpos($buf)) {
+                $event->setChar(0);
+                $event->getKey(0xFFFF - $i);
+                return strlen($keys[$i]);
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * @param Event $event
+     * @param ByteBuffer $buffer
+     * @param $mode
+     * @return bool
+     */
     protected function extractEvent(Event $event, ByteBuffer $buffer, $mode)
     {
         if ($buffer->getLength() == 0) {
@@ -598,73 +837,46 @@ class TermBox {
 
         $buf = $buffer->getBuffer();
         if ($buf[0] == "\033") {
+            $len = $this->parseEscapeSequence($event, $buf);
+            if ($len > 0) {
+                $buffer->truncate($len);
+                return true;
+            }
+
+            if ($this->input_mode & Constants::TB_INPUT_ESC) {
+                $event->setChar(0);
+                $event->setKey(Constants::TB_KEY_ESC);
+                $event->setMode(0);
+                $buffer->truncate(1);
+                return true;
+            }
+            if ($this->input_mode & Constants::TB_INPUT_ALT) {
+                $event->setMode(Constants::TB_MOD_ALT);
+                $buffer->truncate(1);
+                return $this->extractEvent($event, $buffer, $this->input_mode);
+            }
+
+            throw new \RuntimeException("This should be unreachable");
         }
 
+        if ($buf[0] <= Constants::TB_KEY_SPACE ||
+            $buf[0] == Constants::TB_KEY_BACKSPACE2) {
+            $event->setChar(0);
+            $event->setKey($buf[0]);
+            $buffer->truncate(1);
+            return true;
+        }
+
+        // UTF8 char, check if we have enough bytes to create this character
+        $utf8len = Utf8::getLength($buf[0]);
+        if (strlen($buf) >= $utf8len) {
+            $event->setKey(0);
+            $buffer->truncate($utf8len);
+            return true;
+        }
+
+        // Seems we haven't got enough bytes for UTF8 or something else happened
+        return false;
     }
-
-/*
-
-    	if (buf[0] == '\033') {
-    		int n = parse_escape_seq(event, buf, len);
-    		if (n != 0) {
-    			bool success = true;
-    			if (n < 0) {
-    				success = false;
-    				n = -n;
-    			}
-    			bytebuffer_truncate(inbuf, n);
-    			return success;
-    		} else {
-    			// it's not escape sequence, then it's ALT or ESC,
-    			// check inputmode
-    			if (inputmode&TB_INPUT_ESC) {
-    				// if we're in escape mode, fill ESC event, pop
-    				// buffer, return success
-    				event->ch = 0;
-    				event->key = TB_KEY_ESC;
-    				event->mod = 0;
-    				bytebuffer_truncate(inbuf, 1);
-    				return true;
-    			} else if (inputmode&TB_INPUT_ALT) {
-    				// if we're in alt mode, set ALT modifier to
-    				// event and redo parsing
-    				event->mod = TB_MOD_ALT;
-    				bytebuffer_truncate(inbuf, 1);
-    				return extract_event(event, inbuf, inputmode);
-    			}
-    			assert(!"never got here");
-    		}
-    	}
-
-    	// if we're here, this is not an escape sequence and not an alt sequence
-    	// so, it's a FUNCTIONAL KEY or a UNICODE character
-
-    	// first of all check if it's a functional key
-    	if ((unsigned char)buf[0] <= TB_KEY_SPACE ||
-    	    (unsigned char)buf[0] == TB_KEY_BACKSPACE2)
-    	{
-    		// fill event, pop buffer, return success
-    		event->ch = 0;
-    		event->key = (uint16_t)buf[0];
-    		bytebuffer_truncate(inbuf, 1);
-    		return true;
-    	}
-
-    	// feh... we got utf8 here
-
-    	// check if there is all bytes
-    	if (len >= tb_utf8_char_length(buf[0])) {
-    		/* everything ok, fill event, pop buffer, return success
-    		tb_utf8_char_to_unicode(&event->ch, buf);
-    		event->key = 0;
-    		bytebuffer_truncate(inbuf, tb_utf8_char_length(buf[0]));
-    		return true;
-    	}
-
-    	// event isn't recognized, perhaps there is not enough bytes in utf8
-    	// sequence
-    	return false;
-
-*/
 
 }
